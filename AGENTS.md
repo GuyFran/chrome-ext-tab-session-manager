@@ -73,12 +73,20 @@ lift it — verified 2026-08-27. Any automated run must load the extension throu
 `npm run build` (produces `dist/*.zip`) has not been run since the toolchain was restored and
 isn't needed for this fork's local-unpacked workflow.
 
-## Current status (2026-09-16)
+## Current status (2026-09-25)
 
-- Version **7.4.59** in both manifests. Last clean dev build: **7.4.59** (0 errors, 29 warnings,
+- Version **7.4.60** in both manifests. Last clean dev build: **7.4.60** (0 errors, 29 warnings,
   all Sass-loader deprecations; the count was 27 at 7.4.48 and the two extra appeared somewhere in
-  7.4.49–7.4.56, which were never individually re-verified). Runtime status of 7.4.49–7.4.59 is
+  7.4.49–7.4.56, which were never individually re-verified). Runtime status of 7.4.49–7.4.60 is
   not verified in a real browser — see `docs/FORK-REVIEW.md` section 7 for per-version notes.
+- **v7.4.60 — the sweep repairs thumbnail-less incognito placeholders** (user report: after a
+  completed sweep, many tabs show a black "Open page" screen with no thumbnail). `isSweepTarget()`
+  used to permanently exclude every incognito placeholder, so a placeholder built after a *failed*
+  capture could never be revisited. Now placeholders re-enter the sweep; `sweepTargetUrl()` reads
+  the real URL from the `#tsm=` fragment so those that already have a cached thumbnail are skipped,
+  and those that don't are navigated back to the real URL, reloaded, re-captured, and re-swapped
+  with the thumbnail. See `preloadSweep.js` (`isSweepTarget`, `sweepTargetUrl`, the `navigateUrl`
+  branch). Build-only; not yet browser-verified.
 - **v7.4.59 — OS notifications when a restore finishes/fails and when a sweep finishes/stops**
   (`background/notify.js`, new `notifications` permission in both manifests, setting
   `ifNotifyOnRestoreAndSweep` default on). Sweep totals are aggregated across overlapping

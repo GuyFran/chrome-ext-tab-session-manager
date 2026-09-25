@@ -13,7 +13,8 @@ import { addSweepDebugEvent } from "./restoreDebug";
 import { notifySweepFinished, notifySweepNothingToDo } from "./notify";
 import {
   buildIncognitoPlaceholder,
-  isIncognitoPlaceholderUrl
+  isIncognitoPlaceholderUrl,
+  returnIncognitoPlaceholderParameter
 } from "./incognitoPlaceholder";
 
 const logDir = "background/preloadSweep";
@@ -177,17 +178,24 @@ export const handleWindowFocusForDeferredSweep = async windowId => {
 // placeholderを開けないウィンドウ(Chromeのincognito)では、復元時にdiscard済みで生成されるため、
 // incognitoのdiscard済みタブも同じようにスウィープ対象とする
 // 通常ウィンドウのdiscard済みタブはユーザやブラウザが破棄したものなので、対象にしない
-// スウィープ済みのdata:URLプレースホルダは完成形なので再処理しない(しないと無限再処理)
+// スウィープ済みのdata:URLプレースホルダも対象に含める: サムネイルキャプチャに失敗した
+// placeholderは黒画面(「Open page」のみ)で残るため、後続スウィープで実URLへ戻して撮り直す。
+// 無限再処理は shouldSkipForCachedThumbnail が防ぐ — 既にサムネイルのあるplaceholderは
+// スキップされ、無いものだけが再読込・再キャプチャの対象になる(ユーザ報告)
 const isSweepTarget = tab =>
   isRedirectPlaceholder(tab) ||
-  (tab.incognito && tab.discarded && !isIncognitoPlaceholderUrl(tab.url));
+  isIncognitoPlaceholderUrl(tab.url) ||
+  (tab.incognito && tab.discarded);
 
-// スウィープ対象の実URL。redirect placeholderはパラメータから、incognitoの
-// discard済みタブはtab.url(復元時点で実URLを保持)から得る
+// スウィープ対象の実URL。redirect placeholderはパラメータから、incognito placeholderは
+// フラグメント(#tsm=)から、実URLのままのincognito discardタブはtab.urlから得る
 const sweepTargetUrl = tab => {
   if (isRedirectPlaceholder(tab)) {
     const parameter = returnReplaceParameter(tab.url);
     return parameter.isReplaced ? parameter.url : null;
+  }
+  if (isIncognitoPlaceholderUrl(tab.url)) {
+    return returnIncognitoPlaceholderParameter(tab.url).url || null;
   }
   return /^https?:/.test(tab.url || "") ? tab.url : null;
 };
@@ -434,8 +442,9 @@ const sweepWindow = async (windowId, run, { skipFocusWait = false, initialTabs =
       // incognitoのdiscard済み実URLタブは、アクティブ化で実ページが即再読込され
       // サムネイルの出番が無い。キャッシュ済みサムネイルでplaceholderに差し替えて
       // からdiscardする(読み込みは行わない)。通常のredirect placeholderは
-      // placeholderページがキャッシュ済みサムネイルを表示するのでそのまま残す
-      if (nextTab.incognito && nextTab.discarded) {
+      // placeholderページがキャッシュ済みサムネイルを表示するのでそのまま残す。
+      // 既にincognito placeholder化済みでサムネイルもあるタブは完成形なので触らない
+      if (nextTab.incognito && nextTab.discarded && !isIncognitoPlaceholderUrl(nextTab.url)) {
         await swapToPlaceholderAndDiscard(nextTab.id, processedTabIds, completedTabIds, {
           allowCached: true
         });
@@ -484,26 +493,37 @@ const sweepWindow = async (windowId, run, { skipFocusWait = false, initialTabs =
 
     // アクティブなタブはdiscardできないため、次のタブをアクティブにしてから前のタブを処理する
     await browser.tabs.update(nextTab.id, { active: true }).catch(() => {});
+
+    // 明示的に実URLへ遷移させる対象を決める:
+    //  - redirect placeholder: パラメータの実URL
+    //  - incognito placeholder(サムネイル無しで撮り直す): フラグメントの実URL。
+    //    data:URLのままreloadしても「Open page」画面が再描画されるだけで実ページは
+    //    読み込まれないため、必ずtabs.updateで実URLへ遷移させる
+    // それ以外(実URLのままdiscardされたincognitoタブ)はアクティブ化で自動再読込される
+    const incognitoPlaceholder = returnIncognitoPlaceholderParameter(nextTab.url);
+    const navigateUrl = isRedirectPlaceholder(nextTab)
+      ? returnReplaceParameter(nextTab.url).url
+      : incognitoPlaceholder.isIncognitoPlaceholder
+      ? incognitoPlaceholder.url
+      : null;
+
     // アクティブ化によるdiscardタブの自動再読込はフォーカスされたウィンドウでしか
     // 起きない(実測: 可視でも非フォーカスのウィンドウでは30秒待っても unloaded のまま)。
     // 並行スウィープでは同時にフォーカスできるのは1ウィンドウだけなので、明示的に
-    // reloadして読み込みを強制する(tabs.reload()はフォーカスに関係なく機能する)
-    if (nextTab.discarded) await browser.tabs.reload(nextTab.id).catch(() => {});
+    // reloadして読み込みを強制する(tabs.reload()はフォーカスに関係なく機能する)。
+    // 明示遷移する対象(placeholder各種)はupdate({url})が読み込みを起こすのでreload不要
+    if (!navigateUrl && nextTab.discarded) await browser.tabs.reload(nextTab.id).catch(() => {});
     if (previousTabId != null) await swapToPlaceholderAndDiscard(previousTabId, processedTabIds, completedTabIds);
 
     // placeholderは対象タブを直接実URLへ遷移させる。replacePage()はアクティブタブを
     // 問い合わせてsetTimeoutで再試行する作りのため、スウィープのループ内では
     // 取りこぼしが起きる(タブがplaceholderのままdiscardされる)
-    // discard済みタブはアクティブ化でブラウザが実URLを読み込むので、遷移は不要
-    if (isRedirectPlaceholder(nextTab)) {
-      const parameter = returnReplaceParameter(nextTab.url);
-      log.info(logDir, "sweepWindow() navigating", nextTab.id, parameter.url);
-      if (parameter.isReplaced && parameter.url) {
-        await browser.tabs
-          .update(nextTab.id, { url: parameter.url })
-          .then(t => log.info(logDir, "sweepWindow() navigate ok", t?.id, t?.url))
-          .catch(e => log.warn(logDir, "sweepWindow() navigate FAILED", e?.message || String(e)));
-      }
+    if (navigateUrl) {
+      log.info(logDir, "sweepWindow() navigating", nextTab.id, navigateUrl);
+      await browser.tabs
+        .update(nextTab.id, { url: navigateUrl })
+        .then(t => log.info(logDir, "sweepWindow() navigate ok", t?.id, t?.url))
+        .catch(e => log.warn(logDir, "sweepWindow() navigate FAILED", e?.message || String(e)));
     }
     addSweepDebugEvent("sweep-step", { step: "wait-load-start", tabId: nextTab.id });
     const loadedTab = await waitForLoad(nextTab.id, run);
