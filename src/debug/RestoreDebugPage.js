@@ -1,6 +1,8 @@
 import React, { Component } from "react";
 import browser from "webextension-polyfill";
 import { initSettings, getSettings } from "src/settings/settings";
+// GuyFran fork: UI persistence (docs/UI_PERSISTENCE.md)
+import { persistScrollRef, trackWindowBounds } from "src/common/forkUiState";
 
 const formatTime = timestamp => (timestamp ? new Date(timestamp).toLocaleTimeString() : "—");
 
@@ -14,7 +16,10 @@ const SummaryItem = ({ label, value, warning = false }) => (
 export default class RestoreDebugPage extends Component {
   state = { restoreDebug: null, copied: false, downloadError: "" };
 
+  eventLogRef = persistScrollRef("restoreDebug.eventLog");
+
   async componentDidMount() {
+    trackWindowBounds("restoreDebug.window");
     await initSettings();
     document.body.classList.add(`${getSettings("theme")}-theme`);
     browser.runtime.onMessage.addListener(this.handleMessage);
@@ -278,7 +283,7 @@ export default class RestoreDebugPage extends Component {
           {downloadError && <span className="restoreError">{downloadError}</span>}
         </section>
 
-        <section className="eventLog scrollbar">
+        <section className="eventLog scrollbar" ref={this.eventLogRef}>
           {visibleEvents.map((event, index) => (
             <pre key={`${event.at}-${index}`}>{JSON.stringify(event)}</pre>
           ))}

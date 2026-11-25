@@ -6,8 +6,12 @@ import { getSessions, mergeSessionsById } from "../actions/controlSessions";
 import generateWindowsInfo from "../actions/generateWindowsInfo";
 import "../styles/TextInputModalContent.scss";
 import "../styles/MergeSessionsModalContent.scss";
+// GuyFran fork: UI persistence (docs/UI_PERSISTENCE.md)
+import { persistScrollRef } from "src/common/forkUiState";
 
 export default class MergeSessionsModalContent extends Component {
+  sessionsRef = persistScrollRef("mergeSessions.list");
+
   constructor(props) {
     super(props);
     this.state = {
@@ -93,7 +97,7 @@ export default class MergeSessionsModalContent extends Component {
             placeholder={browser.i18n.getMessage("mergedSessionLabel")}
             onChange={e => this.setState({ name: e.target.value })}
           />
-          <div className="sessionsSelector scrollbar">
+          <div className="sessionsSelector scrollbar" ref={this.sessionsRef}>
             {sessions.map(session => (
               <label className="sessionRow" key={session.id}>
                 <input

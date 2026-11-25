@@ -1,6 +1,6 @@
 # Status — Tab Session Manager fork
 
-**Version 7.4.61** (2026-11-24, docs pass; no behaviour change since 7.4.60). Version source:
+**Version 7.4.62** (2026-11-25, UI persistence for fork surfaces, `docs/UI_PERSISTENCE.md`; production build only, not run in a browser). Version source:
 `src/manifest.json` + `src/manifest-ff.json`. Facts below were re-read from the code on 2026-11-24.
 **Nothing was built or run in that pass.**
 

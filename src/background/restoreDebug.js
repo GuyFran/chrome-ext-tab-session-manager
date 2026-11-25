@@ -1,4 +1,6 @@
 import browser from "webextension-polyfill";
+// GuyFran fork: the debug window reopens where it was left (docs/UI_PERSISTENCE.md)
+import { savedWindowBounds } from "src/common/forkUiState";
 
 // リングバッファ上限。226タブの復元+スウィープで約3,600イベント出るため、
 // 2,000では途中で記録が止まりサマリーまで凍結していた(実測)。上限超過時は
@@ -251,6 +253,18 @@ const updateSummary = event => {
   }
 };
 
+// GuyFran fork: saved position, size and maximized state (the page itself saves them and pulls the
+// window back on screen). windows.create() cannot take bounds and "maximized" together.
+const createDebugWindow = async focused => {
+  const { bounds, maximized } = await savedWindowBounds("restoreDebug.window", { width: 860, height: 760 });
+  const createData = { url: browser.runtime.getURL(DEBUG_PAGE_PATH), type: "popup", focused, ...bounds };
+  const created = await browser.windows.create(createData).catch(() =>
+    browser.windows.create({ url: createData.url, type: "popup", focused, width: 860, height: 760 })
+  );
+  if (maximized) await browser.windows.update(created.id, { state: "maximized" }).catch(() => {});
+  return created;
+};
+
 const openDebugPanel = async add => {
   if (debugWindowId !== null) {
     const existingWindow = await browser.windows.get(debugWindowId).catch(() => null);
@@ -260,13 +274,7 @@ const openDebugPanel = async add => {
     }
   }
 
-  const debugWindow = await browser.windows.create({
-    url: browser.runtime.getURL(DEBUG_PAGE_PATH),
-    type: "popup",
-    width: 860,
-    height: 760,
-    focused: false
-  });
+  const debugWindow = await createDebugWindow(false);
   debugWindowId = debugWindow.id;
   add("debug-panel-opened", { windowId: debugWindow.id });
 };
@@ -376,13 +384,7 @@ export const openRestoreDebugPanel = async () => {
       return true;
     }
   }
-  const debugWindow = await browser.windows.create({
-    url: browser.runtime.getURL(DEBUG_PAGE_PATH),
-    type: "popup",
-    width: 860,
-    height: 760,
-    focused: true
-  });
+  const debugWindow = await createDebugWindow(true);
   debugWindowId = debugWindow.id;
   return true;
 };

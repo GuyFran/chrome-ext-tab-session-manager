@@ -11,7 +11,6 @@ Last reviewed 2026-11-24 against code at 7.4.60.
 | L-02 | Enable backup export (`ifBackup` is off by default) if real sessions are stored: Options → Backup | P1 | Owner action | Review, 2026-08-07 |
 | VER-01 | Browser-verify 7.4.49–7.4.60: merge, window reorder, Session Buddy v3 import, import log, cached-thumbnail skip, notifications, repair of a thumbnail-less placeholder | P2 | Todo | Docs pass, 2026-11-24 |
 | OPT-01 | `ifPreloadAfterRestore` is still shown in Options (default on) but nothing reads it since sweeps became manual in 7.4.41. Remove it or relabel it | P2 | Todo, needs code change | Code check, 2026-11-24 |
-| UI-01 | Debug window always opens at 860×760 (`restoreDebug.js`). The global UI rule requires its position and size to persist | P3 | Todo, needs code change | Code check, 2026-11-24 |
 | I18N-01 | Fork strings are hardcoded English in `WindowsArea.js` and `RestoreDebugPage.js`, while the rest of the UI uses `_locales` | P3 | Todo, needs code change | Code check, 2026-11-24 |
 
 ## Retired (scope decision, do not reopen without the owner)
@@ -23,6 +22,7 @@ S-01, S-02, B-05 (Drive sync crash on files without `appProperties`, still prese
 
 | ID | Item | Closed in |
 | --- | --- | --- |
+| UI-01 | Debug window position, size and maximized state persist; fork lists keep their scroll (`docs/UI_PERSISTENCE.md`). Production build only, not run in a browser | 7.4.62 (2026-11-25) |
 | PH-01 | Placeholder URLs under 60 KB | 7.4.58 |
 | DBG-01 | `DEBUG_RESTORE_TAB_LIMIT` removed | 7.4.37 |
 | SWEEP-01 | Post-restore sweep never worked | 7.4.23 |

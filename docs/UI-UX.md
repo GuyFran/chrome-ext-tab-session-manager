@@ -20,4 +20,4 @@ Read from the code at 7.4.60 on 2026-11-24. Upstream screens are not described h
 ## Known UX gaps
 
 - Fork strings are English only (I18N-01).
-- The debug window does not remember its position or size (UI-01).
+- Layout persistence of the fork surfaces (debug window bounds, list scroll): `UI_PERSISTENCE.md`.

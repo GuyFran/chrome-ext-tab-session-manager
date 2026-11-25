@@ -4,6 +4,8 @@ import moment from "moment";
 import mozlz4a from "mozlz4a";
 import { v4 as uuidv4 } from "uuid";
 import OptionContainer from "./OptionContainer";
+// GuyFran fork: UI persistence (docs/UI_PERSISTENCE.md)
+import { persistScrollRef } from "src/common/forkUiState";
 
 // Every failure path resolves { error: "<reason>" } instead of a silent undefined,
 // so the options page can show WHY a read failed. Success resolves { sessions }.
@@ -409,6 +411,8 @@ const formatLogTime = ms => {
 };
 
 export default class ImportSessionsComponent extends Component {
+  importLogRef = persistScrollRef("options.importLog");
+
   constructor() {
     super();
     this.state = {
@@ -589,6 +593,7 @@ export default class ImportSessionsComponent extends Component {
           <p className="caption">No import activity recorded yet.</p>
         ) : (
           <pre
+            ref={this.importLogRef}
             style={{
               maxHeight: "260px",
               overflow: "auto",

@@ -7,7 +7,7 @@ Chrome/Firefox MV3 extension that saves and restores windows and tabs.
 | --- | --- |
 | **Owner** | GuyFran — guynemerp@free.fr (commit identity; no project override) |
 | **Authority** | `~/.claude/CLAUDE.md` → `Documents/Projects/AGENTS.md` → this file → the docs below |
-| **Version** | **7.4.61**, in `version` of **both** `src/manifest.json` and `src/manifest-ff.json` (must match). `package.json` stays `0.0.0`; it is not a version source |
+| **Version** | **7.4.62**, in `version` of **both** `src/manifest.json` and `src/manifest-ff.json` (must match). `package.json` stays `0.0.0`; it is not a version source |
 | **State** | Active. Local unpacked use only, never published |
 | **Remote** | `origin` = `GuyFran/Tab-Session-Manager`, branch `master`. No `upstream` remote |
 | **Tests / CI / lint** | None exist. Verification = dev build + real-browser runs |
@@ -18,7 +18,8 @@ Chrome/Firefox MV3 extension that saves and restores windows and tabs.
 2. [`docs/STATUS.md`](docs/STATUS.md): what is verified and what is not.
 3. [`docs/BACKLOG.md`](docs/BACKLOG.md): open and closed work.
 4. [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md): how the code works today.
-5. [`docs/UI-UX.md`](docs/UI-UX.md): every fork UI surface.
+5. [`docs/UI-UX.md`](docs/UI-UX.md): every fork UI surface. [`docs/UI_PERSISTENCE.md`](docs/UI_PERSISTENCE.md):
+   how each fork surface keeps its layout state.
 6. [`docs/CHANGELOG.md`](docs/CHANGELOG.md): per-version record with verification notes.
 
 **History only, not a status source:** [`docs/FORK-REVIEW.md`](docs/FORK-REVIEW.md) (2026-08 review,
